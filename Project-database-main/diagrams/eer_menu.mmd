@@ -1,0 +1,91 @@
+%% ==============================================================================
+%% SƠ ĐỒ EER PHÂN HỆ NHÀ HÀNG & THỰC ĐƠN (RESTAURANT & MENU SUBSYSTEM)
+%% Dự án: Nền tảng tổng hợp giao đồ ăn đa đối tác (DoorDash Model Platform)
+%% Sinh viên phụ trách: SV2 - Phạm Đình Phúc
+%% ==============================================================================
+
+erDiagram
+    MERCHANT_OWNERS ||--o{ RESTAURANTS : "sở hữu (1..N) [SV1]"
+    RESTAURANTS ||--|{ BRANCHES : "quản lý chi nhánh (1..N)"
+    RESTAURANTS ||--o{ CATEGORIES : "có danh mục (1..N)"
+    CATEGORIES ||--o{ ITEMS : "chứa món ăn (1..N)"
+    ITEMS ||--o{ OPTION_GROUPS : "có nhóm tùy chọn (1..N)"
+    OPTION_GROUPS ||--|{ OPTION_ITEMS : "bao gồm lựa chọn (1..N)"
+
+    BRANCHES ||--o{ ORDERS : "tiếp nhận đơn (1..N) [SV1]"
+    ITEMS ||--o{ ORDER_ITEMS : "được đặt hàng (1..N) [SV1]"
+    OPTION_ITEMS ||--o{ ORDER_ITEM_OPTIONS : "được kèm theo (1..N) [SV1]"
+
+    RESTAURANTS {
+        bigint restaurant_id PK "Mã định danh thương hiệu nhà hàng"
+        bigint owner_id FK "Chủ sở hữu tham chiếu MERCHANT_OWNERS(merchant_owner_id)"
+        varchar restaurant_name "Tên thương hiệu nhà hàng"
+        varchar cuisine_type "Loại hình ẩm thực (VD: Cơm, Trà sữa, Món Việt)"
+        text description "Mô tả ngắn gọn về thương hiệu"
+        varchar logo_url "Đường dẫn hình ảnh logo quán"
+        varchar banner_url "Đường dẫn ảnh bìa quán"
+        boolean is_active "Trạng thái hợp tác của nhà hàng"
+        timestamp created_at "Thời điểm đăng ký hợp tác"
+        timestamp updated_at "Thời điểm cập nhật thông tin"
+    }
+
+    BRANCHES {
+        bigint branch_id PK "Mã định danh chi nhánh"
+        bigint restaurant_id FK "Thuộc thương hiệu nhà hàng RESTAURANTS(restaurant_id)"
+        varchar branch_name "Tên chi nhánh (VD: Chi nhánh Quận 1)"
+        varchar phone_number "Hotline liên hệ chi nhánh"
+        varchar street_address "Số nhà, tên đường chi nhánh"
+        varchar ward "Phường / Xã"
+        varchar district "Quận / Huyện"
+        varchar city "Tỉnh / Thành phố"
+        decimal latitude "Tọa độ vĩ độ (-90 đến +90)"
+        decimal longitude "Tọa độ kinh độ (-180 đến +180)"
+        time opening_time "Giờ mở cửa phục vụ"
+        time closing_time "Giờ đóng cửa"
+        boolean is_active "Trạng thái chi nhánh đang hoạt động"
+        timestamp created_at "Thời điểm thành lập chi nhánh"
+        timestamp updated_at "Thời điểm cập nhật thông tin"
+    }
+
+    CATEGORIES {
+        bigint category_id PK "Mã định danh danh mục thực đơn"
+        bigint restaurant_id FK "Thuộc nhà hàng RESTAURANTS(restaurant_id)"
+        varchar category_name "Tên danh mục (VD: Món chính, Đồ uống, Khai vị)"
+        integer display_order "Thứ tự sắp xếp hiển thị (>= 0)"
+        boolean is_active "Trạng thái hiển thị danh mục"
+        timestamp created_at "Thời điểm tạo danh mục"
+    }
+
+    ITEMS {
+        bigint item_id PK "Mã định danh món ăn"
+        bigint category_id FK "Thuộc danh mục CATEGORIES(category_id)"
+        varchar item_name "Tên món ăn (VD: Cơm sườn nướng, Trà sữa Oolong)"
+        text description "Mô tả nguyên liệu, hương vị món ăn"
+        decimal base_price "Giá niêm yết hiện thời (>= 0)"
+        varchar image_url "Đường dẫn ảnh chụp món ăn"
+        boolean is_available "Tình trạng còn món để đặt (TRUE: Còn, FALSE: Hết)"
+        integer display_order "Thứ tự hiển thị trong danh mục (>= 0)"
+        timestamp created_at "Thời điểm tạo món"
+        timestamp updated_at "Thời điểm cập nhật món"
+    }
+
+    OPTION_GROUPS {
+        bigint group_id PK "Mã định danh nhóm tùy chọn"
+        bigint item_id FK "Gắn với món ăn ITEMS(item_id)"
+        varchar group_name "Tên nhóm tùy chọn (VD: Chọn kích cỡ, Mức đá, Topping)"
+        integer min_selection "Số lượng chọn tối thiểu (>= 0)"
+        integer max_selection "Số lượng chọn tối đa (>= min_selection, > 0)"
+        boolean is_required "Bắt buộc chọn hay không (min_selection >= 1)"
+        integer display_order "Thứ tự hiển thị nhóm tùy chọn (>= 0)"
+        timestamp created_at "Thời điểm tạo nhóm tùy chọn"
+    }
+
+    OPTION_ITEMS {
+        bigint option_item_id PK "Mã định danh lựa chọn cụ thể"
+        bigint group_id FK "Thuộc nhóm tùy chọn OPTION_GROUPS(group_id)"
+        varchar option_name "Tên lựa chọn (VD: Size L, Trân châu đen, 50% Đường)"
+        decimal extra_price "Đơn giá phụ thu thêm (>= 0)"
+        boolean is_available "Trạng thái lựa chọn còn sẵn (TRUE/FALSE)"
+        integer display_order "Thứ tự hiển thị lựa chọn (>= 0)"
+        timestamp created_at "Thời điểm tạo lựa chọn"
+    }
