@@ -1,0 +1,42 @@
+%% ==============================================================================
+%% SƠ ĐỒ EER SIÊU LỚP & PHÂN LỚP THANH TOÁN (PAYMENT EER SUBSYSTEM)
+%% Dự án: Nền tảng tổng hợp giao đồ ăn đa đối tác (DoorDash Model Platform)
+%% Sinh viên phụ trách: SV3 - Lương Công Phi
+%% Ràng buộc chuyên biệt hóa (Specialization Constraint):
+%% - Disjoint {d}: Rời rạc (Mỗi thanh toán chỉ thuộc 1 phương thức)
+%% - Total {t}: Toàn phần (Mọi thanh toán đều phải thuộc 1 trong 3 phân lớp)
+%% ==============================================================================
+
+erDiagram
+    ORDERS ||--o| PAYMENTS : "thanh toán cho (1..1) [SV1]"
+    PAYMENTS ||--o| CASH_PAYMENTS : "chuyên biệt hóa {d, t}"
+    PAYMENTS ||--o| CARD_PAYMENTS : "chuyên biệt hóa {d, t}"
+    PAYMENTS ||--o| EWALLET_PAYMENTS : "chuyên biệt hóa {d, t}"
+
+    PAYMENTS {
+        bigint payment_id PK "Khóa chính tự sinh giao dịch thanh toán"
+        bigint order_id FK,UK "Khóa ngoại tham chiếu ORDERS(order_id) - Duy nhất 1 thanh toán/đơn"
+        decimal amount "Số tiền thanh toán kế toán (>= 0)"
+        varchar payment_method "Phương thức: CASH | CARD | EWALLET"
+        varchar payment_status "Trạng thái: PENDING | SUCCESS | FAILED | REFUNDED"
+        timestamp paid_at "Thời điểm thực hiện thanh toán thành công"
+        timestamp created_at "Thời điểm tạo yêu cầu thanh toán"
+    }
+
+    CASH_PAYMENTS {
+        bigint payment_id PK,FK "Khóa chính và Khóa ngoại tham chiếu PAYMENTS(payment_id)"
+        decimal change_amount_for "Mệnh giá tiền mặt khách chuẩn bị để tài xế thối (>= amount)"
+    }
+
+    CARD_PAYMENTS {
+        bigint payment_id PK,FK "Khóa chính và Khóa ngoại tham chiếu PAYMENTS(payment_id)"
+        varchar card_last4 "4 số cuối của thẻ thanh toán (Tuân thủ PCI DSS)"
+        varchar card_brand "Tổ chức phát hành thẻ: VISA | MASTERCARD | JCB | NAPAS"
+        varchar transaction_ref "Mã tham chiếu giao dịch từ cổng thanh toán đối tác"
+    }
+
+    EWALLET_PAYMENTS {
+        bigint payment_id PK,FK "Khóa chính và Khóa ngoại tham chiếu PAYMENTS(payment_id)"
+        varchar wallet_provider "Nhà cung cấp ví: MOMO | ZALOPAY | SHOPEEPAY"
+        varchar wallet_transaction_id "Mã đối soát giao dịch do nhà mạng ví điện tử cấp"
+    }

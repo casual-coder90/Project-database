@@ -1,0 +1,67 @@
+%% ==============================================================================
+%% SƠ ĐỒ EER PHÂN HỆ NGƯỜI DÙNG (USER SUBSYSTEM EER DIAGRAM)
+%% Dự án: Nền tảng tổng hợp giao đồ ăn (DoorDash Model Platform)
+%% Sinh viên phụ trách: SV1 - Nhóm trưởng
+%% Ràng buộc chuyên biệt hóa (Specialization Constraint):
+%% - Disjoint {d}: Rời rạc (Mỗi user chỉ thuộc chính xác 1 phân lớp)
+%% - Total {t}: Toàn phần (Mọi user đều phải thuộc 1 trong 3 phân lớp)
+%% ==============================================================================
+
+erDiagram
+    USERS ||--o| CUSTOMERS : "chuyên biệt hóa {d, t}"
+    USERS ||--o| MERCHANT_OWNERS : "chuyên biệt hóa {d, t}"
+    USERS ||--o| DRIVERS : "chuyên biệt hóa {d, t}"
+    CUSTOMERS ||--o{ CUSTOMER_ADDRESSES : "sở hữu (1..N)"
+
+    USERS {
+        bigint user_id PK "Khóa chính tự tăng hoặc định danh người dùng"
+        varchar email UK "Email đăng nhập duy nhất"
+        varchar phone_number UK "Số điện thoại xác thực duy nhất"
+        varchar password_hash "Chuỗi mật khẩu băm bảo mật (Argon2/Bcrypt)"
+        varchar full_name "Họ và tên hiển thị"
+        varchar user_type "Loại tài khoản: CUSTOMER | MERCHANT_OWNER | DRIVER"
+        varchar status "Trạng thái: ACTIVE | SUSPENDED | DELETED"
+        timestamp created_at "Thời điểm đăng ký"
+        timestamp updated_at "Thời điểm cập nhật thông tin gần nhất"
+    }
+
+    CUSTOMERS {
+        bigint customer_id PK,FK "Khóa chính và Khóa ngoại tham chiếu USERS(user_id)"
+        integer loyalty_points "Điểm thưởng tích lũy (>= 0)"
+        date birth_date "Ngày sinh nhật khách hàng"
+        varchar avatar_url "Đường dẫn ảnh đại diện cá nhân"
+    }
+
+    CUSTOMER_ADDRESSES {
+        bigint address_id PK "Khóa chính địa chỉ"
+        bigint customer_id FK "Khóa ngoại tham chiếu CUSTOMERS(customer_id)"
+        varchar recipient_name "Tên người nhận hàng"
+        varchar recipient_phone "Số điện thoại người nhận"
+        varchar street_address "Số nhà, tên đường chi tiết"
+        varchar ward "Phường / Xã"
+        varchar district "Quận / Huyện"
+        varchar city "Tỉnh / Thành phố"
+        decimal latitude "Vĩ độ (-90 đến +90)"
+        decimal longitude "Kinh độ (-180 đến +180)"
+        varchar address_label "Nhãn gợi nhớ (Nhà riêng, Cơ quan, Bạn bè)"
+        boolean is_default "Cờ mặc định (Duy nhất 1 địa chỉ TRUE trên 1 khách)"
+        timestamp created_at "Thời gian thêm địa chỉ"
+    }
+
+    MERCHANT_OWNERS {
+        bigint merchant_owner_id PK,FK "Khóa chính và Khóa ngoại tham chiếu USERS(user_id)"
+        varchar tax_code UK "Mã số thuế doanh nghiệp/hộ kinh doanh"
+        varchar identity_card_number UK "Số CCCD/Hộ chiếu người đại diện pháp luật"
+        varchar business_license_url "Đường dẫn file ảnh giấy phép ĐKKD"
+        varchar kyc_status "Trạng thái xác minh: PENDING | VERIFIED | REJECTED"
+        timestamp verified_at "Thời điểm được Admin phê duyệt"
+    }
+
+    DRIVERS {
+        bigint driver_id PK,FK "Khóa chính và Khóa ngoại tham chiếu USERS(user_id) - Do SV3 quản lý DDL"
+        varchar license_number UK "Số giấy phép lái xe"
+        varchar vehicle_type "Loại phương tiện: MOTORBIKE | ELECTRIC_BIKE | CAR"
+        varchar vehicle_plate UK "Biển kiểm soát xe"
+        varchar driver_status "Trạng thái: OFFLINE | AVAILABLE | DELIVERING"
+        boolean is_active "Trạng thái kích hoạt hoạt động"
+    }

@@ -1,0 +1,104 @@
+%% ==============================================================================
+%% SƠ ĐỒ EER PHÂN HỆ ĐƠN HÀNG TRUNG TÂM (ORDER SUBSYSTEM EER DIAGRAM)
+%% Dự án: Nền tảng tổng hợp giao đồ ăn đa đối tác (DoorDash Model Platform)
+%% Sinh viên phụ trách: SV1 - Nhóm trưởng (Bùi Duy Quang)
+%% 
+%% Mô tả nghiệp vụ:
+%%   - CUSTOMERS đặt 1 hoặc nhiều ORDERS (1..N).
+%%   - CUSTOMER_ADDRESSES đóng vai trò địa chỉ nhận hàng cho ORDERS (1..N).
+%%   - BRANCHES tiếp nhận và chế biến ORDERS (1..N).
+%%   - DRIVERS (SV3) nhận vận chuyển ORDERS (1..N).
+%%   - ORDERS chứa 1 hoặc nhiều ORDER_ITEMS (1..N, Weak Entity/Composition).
+%%   - ITEMS liên kết với ORDER_ITEMS thông qua quan hệ đặt món (1..N).
+%%   - ORDER_ITEMS có thể có 0 hoặc nhiều ORDER_ITEM_OPTIONS (1..N).
+%%   - OPTION_ITEMS liên kết với ORDER_ITEM_OPTIONS thông qua tùy chọn (1..N).
+%% ==============================================================================
+
+erDiagram
+    CUSTOMERS ||--o{ ORDERS : "đặt (1..N)"
+    CUSTOMER_ADDRESSES ||--o{ ORDERS : "giao tới (1..N)"
+    BRANCHES ||--o{ ORDERS : "chế biến (1..N) [SV2]"
+    DRIVERS |o--o{ ORDERS : "vận chuyển (0..N) [SV3]"
+
+    ORDERS ||--|{ ORDER_ITEMS : "bao gồm (1..N)"
+    ITEMS ||--o{ ORDER_ITEMS : "được đặt (1..N) [SV2]"
+
+    ORDER_ITEMS ||--o{ ORDER_ITEM_OPTIONS : "kèm theo (0..N)"
+    OPTION_ITEMS ||--o{ ORDER_ITEM_OPTIONS : "chọn làm topping (1..N) [SV2]"
+
+    ORDERS {
+        bigint order_id PK "Khóa chính đơn hàng"
+        varchar order_code UK "Mã đơn hàng duy nhất"
+        bigint customer_id FK "Khóa ngoại tham chiếu CUSTOMERS(customer_id)"
+        bigint branch_id FK "Khóa ngoại tham chiếu BRANCHES(branch_id)"
+        bigint driver_id FK "Khóa ngoại tham chiếu DRIVERS(driver_id) - có thể NULL"
+        bigint delivery_address_id FK "Khóa ngoại tham chiếu CUSTOMER_ADDRESSES(address_id)"
+        varchar order_status "Trạng thái: PENDING | CONFIRMED | PREPARING | READY_FOR_PICKUP | PICKED_UP | DELIVERED | CANCELLED"
+        varchar payment_status "Trạng thái thanh toán: UNPAID | AUTHORIZED | PAID | REFUNDED"
+        decimal subtotal_amount "Tiền món gốc (>= 0)"
+        decimal delivery_fee "Cước vận chuyển (>= 0)"
+        decimal service_fee "Phí nền tảng (>= 0)"
+        decimal discount_amount "Tiền giảm giá khuyến mãi (>= 0)"
+        decimal total_amount "Tổng thanh toán cuối cùng (>= 0)"
+        decimal delivery_distance_km "Khoảng cách vận chuyển (km)"
+        smallint driver_rating "Đánh giá tài xế (1-5 sao)"
+        smallint restaurant_rating "Đánh giá nhà hàng (1-5 sao)"
+        text customer_note "Ghi chú của khách hàng khi đặt"
+        timestamp created_at "Thời điểm tạo đơn"
+        timestamp updated_at "Thời điểm cập nhật đơn"
+    }
+
+    ORDER_ITEMS {
+        bigint order_item_id PK "Khóa chính chi tiết món đặt"
+        bigint order_id FK "Khóa ngoại tham chiếu ORDERS(order_id)"
+        bigint item_id FK "Khóa ngoại logic tham chiếu ITEMS(item_id)"
+        varchar item_name_snapshot "Tên món chụp tại thời điểm đặt [BR02]"
+        decimal unit_price_snapshot "Đơn giá món chụp tại thời điểm đặt [BR02]"
+        integer quantity "Số lượng đặt (> 0)"
+        decimal subtotal "Thành tiền món = đơn giá * số lượng"
+        varchar item_note "Ghi chú món ăn riêng lẻ"
+        timestamp created_at "Thời điểm thêm món"
+    }
+
+    ORDER_ITEM_OPTIONS {
+        bigint order_item_option_id PK "Khóa chính tùy chọn đính kèm"
+        bigint order_item_id FK "Khóa ngoại tham chiếu ORDER_ITEMS(order_item_id)"
+        bigint option_item_id FK "Khóa ngoại logic tham chiếu OPTION_ITEMS(option_item_id)"
+        varchar option_name_snapshot "Tên topping chụp tại thời điểm đặt [BR02]"
+        decimal extra_price_snapshot "Đơn giá phụ thu chụp tại thời điểm đặt [BR02]"
+        timestamp created_at "Thời điểm thêm tùy chọn"
+    }
+
+    CUSTOMERS {
+        bigint customer_id PK,FK "Khách hàng đặt món"
+        integer loyalty_points "Điểm thưởng"
+    }
+
+    CUSTOMER_ADDRESSES {
+        bigint address_id PK "Địa chỉ nhận hàng"
+        varchar street_address "Số nhà, tên đường"
+        decimal latitude "Vĩ độ"
+        decimal longitude "Kinh độ"
+    }
+
+    BRANCHES {
+        bigint branch_id PK "Chi nhánh quán nhận đơn"
+        varchar branch_name "Tên chi nhánh"
+    }
+
+    DRIVERS {
+        bigint driver_id PK "Tài xế giao hàng"
+        varchar vehicle_plate "Biển số xe"
+    }
+
+    ITEMS {
+        bigint item_id PK "Món ăn trong thực đơn"
+        varchar item_name "Tên món gốc"
+        decimal base_price "Giá niêm yết hiện thời"
+    }
+
+    OPTION_ITEMS {
+        bigint option_item_id PK "Tùy chọn/Topping trong thực đơn"
+        varchar option_name "Tên tùy chọn gốc"
+        decimal extra_price "Giá phụ thu niêm yết hiện thời"
+    }
