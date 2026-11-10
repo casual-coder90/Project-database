@@ -1,0 +1,16 @@
+{
+  "name": "food-delivery-database-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ứng dụng demo nghiệp vụ giao đồ ăn dùng MySQL/InnoDB",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/api.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.11.5"
+  }
+}

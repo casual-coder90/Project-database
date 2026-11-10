@@ -6,7 +6,7 @@
 * **Sinh viên 1 (Lead & Phân hệ Người dùng)**: Bùi Duy Quang
 * **Sinh viên 2 (Phân hệ Thực đơn & Chuẩn hóa)**: Phạm Đình Phúc
 * **Sinh viên 3 (Phân hệ Vận hành & Thanh toán GIS)**: Lương Công Phi
-* **Hệ quản trị CSDL mục tiêu**: PostgreSQL 14+ / 15 / 16
+* **Hệ quản trị CSDL mục tiêu**: MySQL 8.4 (đã kiểm thử 8.4.11), storage engine InnoDB
 
 ---
 
@@ -91,7 +91,7 @@ Mô hình DoorDash đặt ra các thách thức kỹ thuật nghiêm ngặt về
   * Kế thừa từ `USERS`: `driver_id` (PK, FK tham chiếu `USERS.user_id`).
   * `license_number` (GPLX, Unique), `vehicle_type` ('MOTORBIKE', 'ELECTRIC_BIKE', 'CAR'), `vehicle_plate` (Biển số xe, Unique), `current_lat`, `current_long`, `driver_status` ('OFFLINE', 'AVAILABLE', 'DELIVERING'), `is_active`.
 * **Siêu lớp & Phân lớp Thanh toán (`PAYMENTS`, `CASH_PAYMENTS`, `CARD_PAYMENTS`, `EWALLET_PAYMENTS`)**:
-  * Siêu lớp `PAYMENTS`: `payment_id` (PK), `order_id` (FK, Unique - 1 đơn hàng ứng với 1 giao dịch thanh toán), `amount`, `payment_method` ('CASH', 'CARD', 'EWALLET'), `payment_status` ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'), `paid_at`.
+  * Siêu lớp `PAYMENTS`: `payment_id` (PK), `order_id` (FK), `amount`, `payment_method` ('CASH', 'CARD', 'EWALLET'), `payment_status` ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'), `paid_at`. Một đơn có nhiều lần thử nhưng tối đa một lần `SUCCESS`.
   * Phân lớp `CASH_PAYMENTS`: `change_amount_for` (tiền khách chuẩn bị để thối).
   * Phân lớp `CARD_PAYMENTS`: `card_last4`, `card_brand`, `transaction_ref`.
   * Phân lớp `EWALLET_PAYMENTS`: `wallet_provider` ('MOMO', 'ZALOPAY', 'SHOPEEPAY'), `wallet_transaction_id`.
@@ -116,7 +116,7 @@ Mô hình DoorDash đặt ra các thách thức kỹ thuật nghiêm ngặt về
 
 * **[BR03 - Sổ địa chỉ & Địa chỉ mặc định duy nhất (Unique Default Address)]**:
   * Một khách hàng có quyền lưu trữ $N$ địa chỉ giao nhận ($N \ge 0$).
-  * Tại một thời điểm, một khách hàng chỉ được phép có **tối đa một địa chỉ mặc định** (`is_default = TRUE`). Ràng buộc này được bảo đảm bằng Partial Unique Index trong CSDL.
+  * Tại một thời điểm, một khách hàng chỉ được phép có **tối đa một địa chỉ mặc định** (`is_default = TRUE`). MySQL bảo đảm bằng generated guard column và UNIQUE.
 
 * **[BR04 - Máy trạng thái vòng đời đơn hàng (Order State Transition)]**:
   * Đơn hàng bắt buộc phải tuân theo luồng tuần tự nghiêm ngặt:
@@ -126,7 +126,7 @@ Mô hình DoorDash đặt ra các thách thức kỹ thuật nghiêm ngặt về
 
 * **[BR05 - Chuyên biệt hóa Thanh toán (Payment Polymorphism)]**:
   * Siêu lớp `PAYMENTS` và các phân lớp (`CASH_PAYMENTS`, `CARD_PAYMENTS`, `EWALLET_PAYMENTS`) thỏa mãn ràng buộc **Disjoint $\{d\}$** và **Total $\{t\}$**.
-  * Mỗi đơn hàng chỉ có một giao dịch thanh toán duy nhất (`order_id` trong `PAYMENTS` là UNIQUE).
+  * Mỗi bản ghi thanh toán thuộc đúng một phân lớp theo `payment_method`. Một đơn có thể có nhiều lần thử; generated guard column và UNIQUE bảo đảm tối đa một lần thành công.
 
 * **[BR06 - Tọa độ không gian & Tính toàn vẹn vị trí (Spatial Coordinates Integrity)]**:
   * Toàn bộ tọa độ vĩ độ (`latitude`) phải nằm trong đoạn $[-90.0, +90.0]$.
@@ -136,6 +136,12 @@ Mô hình DoorDash đặt ra các thách thức kỹ thuật nghiêm ngặt về
 * **[BR07 - Đánh giá có điều kiện xác thực (Verified Conditional Review)]**:
   * Khách hàng chỉ được quyền gửi đánh giá (`RESTAURANT_REVIEWS` hoặc `DRIVER_REVIEWS`) khi đơn hàng tương ứng đã có trạng thái `DELIVERED`.
   * Mỗi đơn hàng chỉ được phép đánh giá tối đa 1 lần cho nhà hàng và 1 lần cho tài xế (`order_id` là UNIQUE trong bảng review). Điểm đánh giá `rating` bắt buộc nằm trong đoạn $[1, 5]$.
+
+* **[BR08 - Nhất quán chi nhánh và snapshot địa chỉ]**:
+  * Mọi món trong đơn phải thuộc nhà hàng sở hữu chi nhánh xử lý. Người nhận, số điện thoại, địa chỉ và tọa độ được snapshot vào `ORDERS`; thay đổi sổ địa chỉ không sửa đơn lịch sử.
+
+* **[BR09 - Giao hàng, phân công và vị trí]**:
+  * Trạng thái giao được lưu riêng trong `DELIVERIES`. `DELIVERY_ASSIGNMENTS` lưu toàn bộ lần phân công; generated guard column và UNIQUE giới hạn một phân công hiệu lực. `DRIVER_LOCATION_HISTORY` lưu cả `captured_at` và `recorded_at` để chấp nhận mẫu đến trễ/không theo thứ tự.
 
 ---
 

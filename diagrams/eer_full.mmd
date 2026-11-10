@@ -1,0 +1,28 @@
+erDiagram
+  USERS ||--o| CUSTOMERS : "is-a {d,total}"
+  USERS ||--o| MERCHANT_OWNERS : "is-a {d,total}"
+  USERS ||--o| DRIVERS : "is-a {d,total}"
+  CUSTOMERS ||--o{ CUSTOMER_ADDRESSES : owns
+  MERCHANT_OWNERS ||--o{ RESTAURANTS : owns
+  RESTAURANTS ||--|{ BRANCHES : has
+  RESTAURANTS ||--o{ CATEGORIES : defines
+  CATEGORIES ||--o{ ITEMS : contains
+  ITEMS ||--o{ OPTION_GROUPS : offers
+  OPTION_GROUPS ||--o{ OPTION_ITEMS : contains
+  CUSTOMERS ||--o{ ORDERS : places
+  BRANCHES ||--o{ ORDERS : handles
+  ORDERS ||--|{ ORDER_ITEMS : contains
+  ITEMS ||--o{ ORDER_ITEMS : snapshotted_as
+  ORDER_ITEMS ||--o{ ORDER_ITEM_OPTIONS : selects
+  ORDERS ||--o{ PAYMENTS : attempts
+  PAYMENTS ||--o| CASH_PAYMENTS : "is-a {d,total}"
+  PAYMENTS ||--o| CARD_PAYMENTS : "is-a {d,total}"
+  PAYMENTS ||--o| EWALLET_PAYMENTS : "is-a {d,total}"
+  ORDERS ||--o| DELIVERIES : fulfilled_by
+  DELIVERIES ||--o{ DELIVERY_ASSIGNMENTS : assignment_history
+  DRIVERS ||--o{ DELIVERY_ASSIGNMENTS : accepts
+  DRIVERS ||--o{ DRIVER_LOCATION_HISTORY : reports
+  DELIVERY_ASSIGNMENTS ||--o{ DRIVER_LOCATION_HISTORY : contextualizes
+  ORDERS ||--o{ ORDER_STATUS_LOGS : audit
+  ORDERS ||--o| RESTAURANT_REVIEWS : may_receive
+  ORDERS ||--o| DRIVER_REVIEWS : may_receive
